@@ -5,13 +5,13 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.Date;
 
 @Entity
 @Table(name = "products")
 @Getter
 @Setter
 public class Product {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long productId;
@@ -22,15 +22,23 @@ public class Product {
     @Column(length = 50)
     private String productType;
 
-    @ManyToOne
-    @JoinColumn(name = "product_stock_id")
-    private ProductStock productStock;
+    @Column(nullable = false)
+    private int quantity;
 
-    @Column(length = 20)
-    private String unit;
+    @Column(length = 50)
+    private String numberlote;
 
     @Lob
     private String description;
+
+    @Column
+    private LocalDateTime dateexpiration;
+
+    @Column
+    private Number priceforunity;
+
+    @Column
+    private Number priceforlote;
 
     @Column(name = "created_at", columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
     private LocalDateTime createdAt;
