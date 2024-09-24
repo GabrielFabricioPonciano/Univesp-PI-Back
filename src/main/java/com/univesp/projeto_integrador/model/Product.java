@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Date;
 
@@ -35,16 +36,19 @@ public class Product {
     private LocalDateTime dateexpiration;
 
     @Column
-    private Number priceforunity;
+    private BigDecimal priceforunity;
 
     @Column
-    private Number priceforlote;
+    private BigDecimal priceforlote;
 
     @Column(name = "created_at", columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
     private LocalDateTime createdAt;
 
     @Column(name = "updated_at", columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP")
     private LocalDateTime updatedAt;
+
+    @Enumerated(EnumType.STRING)
+    Productstatus status = Productstatus.ACTIVE;
 
     @PrePersist
     public void prePersist() {
@@ -57,4 +61,8 @@ public class Product {
         this.updatedAt = LocalDateTime.now();
     }
 
+}
+
+enum Productstatus {
+    ACTIVE, SOLD, ROTTEN
 }

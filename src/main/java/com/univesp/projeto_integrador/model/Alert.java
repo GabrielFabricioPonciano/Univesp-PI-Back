@@ -11,9 +11,6 @@ public class Alert {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long alertId;
 
-    @ManyToOne
-    @JoinColumn(name = "stock_id", nullable = false)
-    private ProductStock stock;
 
     @Enumerated(EnumType.STRING)
     private AlertType alertType;

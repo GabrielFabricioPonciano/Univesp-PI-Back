@@ -12,10 +12,6 @@ public class Promotion {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long promotionId;
 
-    @ManyToOne
-    @JoinColumn(name = "stock_id", nullable = false)
-    private ProductStock stock;
-
     @Column(length = 255)
     private String promotionDescription;
 

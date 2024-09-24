@@ -12,9 +12,7 @@ public class Transaction {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long transactionId;
 
-    @ManyToOne
-    @JoinColumn(name = "stock_id", nullable = false)
-    private ProductStock stock;
+
 
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
