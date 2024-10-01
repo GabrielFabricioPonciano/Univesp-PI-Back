@@ -62,12 +62,16 @@ public class ProductService {
     }
 
     public void deleteProduct(Long id) {
-        if (productRepository.existsById(id)){
-            Optional<Product> produto = productRepository.findById(id);
-            produto.ifPresent(product -> System.out.println("Excluido produto: " + product.getProductName()));
+        Optional<Product> product = productRepository.findById(id);
+        if (product.isPresent()) {
+            System.out.println("Excluindo produto: " + product.get().getProductName());
+            productRepository.deleteById(id);
+        } else {
+            throw new ResourceNotFoundException("Produto não encontrado com o ID: " + id);
         }
-        productRepository.deleteById(id);
     }
+
+
 
     private Product dtoToEntity(ProductDTO dto) {
         Product product = new Product();
