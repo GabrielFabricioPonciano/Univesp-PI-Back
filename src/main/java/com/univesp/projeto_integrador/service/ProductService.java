@@ -7,6 +7,8 @@ import com.univesp.projeto_integrador.repository.ProductRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -21,7 +23,6 @@ public class ProductService {
     public List<ProductDTO> findAll() {
         List<Product> produtos = productRepository.findAll();
         return produtos.stream().map(this::entityToDto).collect(Collectors.toList());
-
     };
 
     public ProductDTO findById(Long id) {
@@ -33,33 +34,10 @@ public class ProductService {
             throw new ResourceNotFoundException("Produto não encontrado com id " + id);
     }}
 
-    public ProductDTO saveProduct(ProductDTO product) {
-        Product produto = dtoToEntity(product);
-          Product salvoproduto = productRepository.save(produto);
-          return entityToDto(salvoproduto);
-    }
+    // Método para verificar se um valor BigDecimal é nulo ou inválido (<= 0)
 
-    public ProductDTO updateProduct(Long id, ProductDTO newProductDetails) {
-        // Encontra o produto existente pelo ID
-        Product existingProduct = productRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Produto não encontrado com id " + id));
 
-        // Atualiza os valores do produto existente com base no DTO fornecido
-        existingProduct.setProductName(newProductDetails.getName());
-        existingProduct.setProductType(newProductDetails.getType());
-        existingProduct.setQuantity(newProductDetails.getQuantity());
-        existingProduct.setNumberlote(newProductDetails.getNumberlote());
-        existingProduct.setDescription(newProductDetails.getDescription());
-        existingProduct.setDateexpiration(newProductDetails.getExpiryDate());
-        existingProduct.setPriceforunity(newProductDetails.getUnitPrice());
-        existingProduct.setPriceforlote(newProductDetails.getPriceforlote());
 
-        // Salva o produto atualizado no banco de dados
-        productRepository.save(existingProduct);
-
-        // Converte o produto atualizado de volta para DTO e retorna
-        return entityToDto(existingProduct);
-    }
 
     public void deleteProduct(Long id) {
         Optional<Product> product = productRepository.findById(id);
@@ -71,34 +49,140 @@ public class ProductService {
         }
     }
 
+    // Método para verificar se um valor BigDecimal é nulo ou inválido (<= 0)
+    private void validateBigDecimalField(BigDecimal value, String fieldName) {
+        if (value == null || value.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException(fieldName + " não pode ser nulo ou menor/igual a zero.");
+        }
+    }
+
+    public ProductDTO updateProduct(Long id, ProductDTO newProductDetails) {
+        // Encontra o produto existente pelo ID
+        Product existingProduct = productRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Produto não encontrado com id " + id));
+
+        // Atualiza os valores do produto existente com base no DTO fornecido
+        existingProduct.setProductName(newProductDetails.getProductName());
+        existingProduct.setProductType(newProductDetails.getProductType());
+        existingProduct.setQuantity(newProductDetails.getQuantity());
+        existingProduct.setNumberLote(newProductDetails.getNumberLote());
+        existingProduct.setDescription(newProductDetails.getDescription());
+        existingProduct.setDateExpiration(newProductDetails.getDateExpiration());
+
+        // Valida apenas gainPercentage, pois priceForLotePercent será calculado
+        validateBigDecimalField(newProductDetails.getGainPercentage(), "A porcentagem de ganho");
+
+        // Atualiza gainPercentage
+        existingProduct.setGainPercentage(newProductDetails.getGainPercentage());
+
+        // Calcula o preço final do lote com a margem de ganho
+        BigDecimal priceForLotePercent = calculatePriceForLotePercent(
+                existingProduct.getPriceForLote(), existingProduct.getGainPercentage()
+        );
+        existingProduct.setPriceForLotePercent(priceForLotePercent);
+
+        // Calcula os preços unitários
+        BigDecimal priceForUnity = calculateUnitPrice(existingProduct.getPriceForLote(), existingProduct.getQuantity());
+        existingProduct.setPriceForUnity(priceForUnity);
+
+        // Calcula o preço unitário com a margem de ganho
+        BigDecimal priceForUnityPercent = calculateUnitPrice(existingProduct.getPriceForLotePercent(), existingProduct.getQuantity());
+        existingProduct.setPriceForUnityPercent(priceForUnityPercent);
+
+        // Salva o produto atualizado no banco de dados
+        Product savedProduct = productRepository.save(existingProduct);
+
+        // Converte o produto atualizado de volta para DTO e retorna
+        return entityToDto(savedProduct);
+    }
+
+    public ProductDTO saveProduct(ProductDTO productDTO) {
+        Product product = dtoToEntity(productDTO);
+
+        // Verifica se a quantidade é válida
+        if (product.getQuantity() <= 0) {
+            throw new IllegalArgumentException("A quantidade deve ser maior que zero.");
+        }
+
+        // Valida apenas priceForLote e gainPercentage, pois priceForLotePercent será calculado
+        validateBigDecimalField(product.getPriceForLote(), "O preço por lote");
+        validateBigDecimalField(product.getGainPercentage(), "A porcentagem de ganho");
+
+        // Calcula o preço final do lote com a margem de ganho
+        BigDecimal priceForLotePercent = calculatePriceForLotePercent(product.getPriceForLote(), product.getGainPercentage());
+        product.setPriceForLotePercent(priceForLotePercent);
+
+        // Calcula o preço unitário com e sem margem
+        BigDecimal priceForUnity = calculateUnitPrice(product.getPriceForLote(), product.getQuantity());
+        BigDecimal priceForUnityPercent = calculateUnitPrice(priceForLotePercent, product.getQuantity());
+        product.setPriceForUnity(priceForUnity);
+        product.setPriceForUnityPercent(priceForUnityPercent);
+
+        // Salva no banco de dados
+        Product savedProduct = productRepository.save(product);
+
+        return entityToDto(savedProduct);
+    }
+
+    // Método para calcular o preço do lote a partir de priceForLote e gainPercentage
+    private BigDecimal calculatePriceForLotePercent(BigDecimal priceForLote, BigDecimal gainPercentage) {
+        BigDecimal gainFactor = BigDecimal.ONE.add(gainPercentage.divide(new BigDecimal("100"), RoundingMode.HALF_UP));
+        return priceForLote.multiply(gainFactor).setScale(2, RoundingMode.HALF_UP);
+    }
+
+    // Método para calcular o preço unitário
+    private BigDecimal calculateUnitPrice(BigDecimal priceForLote, int quantity) {
+        if (quantity > 0) {
+            return priceForLote.divide(new BigDecimal(quantity), RoundingMode.HALF_UP);
+        }
+        return BigDecimal.ZERO;
+    }
+
 
 
     private Product dtoToEntity(ProductDTO dto) {
         Product product = new Product();
-        product.setProductName(dto.getName());
-        product.setProductType(dto.getType());
+        product.setProductName(dto.getProductName());
+        product.setProductType(dto.getProductType());
         product.setQuantity(dto.getQuantity());
-        product.setNumberlote(dto.getNumberlote());
-        product.setDateexpiration(dto.getExpiryDate());
-        product.setPriceforunity(dto.getUnitPrice());
-        product.setPriceforlote(dto.getPriceforlote());
+        product.setNumberLote(dto.getNumberLote());
+        product.setDateExpiration(dto.getDateExpiration());
+        product.setGainPercentage(dto.getGainPercentage());
+        product.setPriceForLote(dto.getPriceForLote());
         product.setDescription(dto.getDescription());
+
+        // Estes campos serão calculados no backend e não devem ser enviados pelo cliente diretamente.
+        // Certifique-se de que estes campos sejam inicializados corretamente na lógica de negócio.
+        product.setPriceForUnity(dto.getPriceForUnity());
+        product.setPriceForUnityPercent(dto.getPriceForUnityPercent());
+        product.setPriceForLotePercent(dto.getPriceForLotePercent());
+
         return product;
     }
 
-    // Converter Entidade para DTO
     private ProductDTO entityToDto(Product product) {
         ProductDTO dto = new ProductDTO();
-        dto.setId(product.getProductId());
-        dto.setName(product.getProductName());
-        dto.setType(product.getProductType());
+        dto.setProductId(product.getProductId());
+        dto.setProductName(product.getProductName());
+        dto.setProductType(product.getProductType());
         dto.setQuantity(product.getQuantity());
-        dto.setNumberlote(product.getNumberlote());
-        dto.setExpiryDate(product.getDateexpiration());
-        dto.setUnitPrice(product.getPriceforunity());
-        dto.setPriceforlote(product.getPriceforlote());
+        dto.setNumberLote(product.getNumberLote());
+        dto.setDateExpiration(product.getDateExpiration());
+        dto.setGainPercentage(product.getGainPercentage());
+        dto.setPriceForLote(product.getPriceForLote());
         dto.setDescription(product.getDescription());
+
+        // Valores calculados que são enviados ao frontend para exibição
+        dto.setPriceForUnity(product.getPriceForUnity());
+        dto.setPriceForUnityPercent(product.getPriceForUnityPercent());
+        dto.setPriceForLotePercent(product.getPriceForLotePercent());
+
         return dto;
     }
+
+
+
+
+
 
 }
