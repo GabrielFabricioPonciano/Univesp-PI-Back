@@ -69,10 +69,12 @@ public class ProductService {
         existingProduct.setDescription(newProductDetails.getDescription());
         existingProduct.setDateExpiration(newProductDetails.getDateExpiration());
 
-        // Valida apenas gainPercentage, pois priceForLotePercent será calculado
+        // Valida apenas priceForLote e gainPercentage, pois priceForLotePercent será calculado
+        validateBigDecimalField(newProductDetails.getPriceForLote(), "O preço por lote");
         validateBigDecimalField(newProductDetails.getGainPercentage(), "A porcentagem de ganho");
 
-        // Atualiza gainPercentage
+        // Atualiza priceForLote e gainPercentage
+        existingProduct.setPriceForLote(newProductDetails.getPriceForLote());
         existingProduct.setGainPercentage(newProductDetails.getGainPercentage());
 
         // Calcula o preço final do lote com a margem de ganho
@@ -96,6 +98,7 @@ public class ProductService {
         return entityToDto(savedProduct);
     }
 
+
     public ProductDTO saveProduct(ProductDTO productDTO) {
         Product product = dtoToEntity(productDTO);
 
@@ -103,6 +106,7 @@ public class ProductService {
         if (product.getQuantity() <= 0) {
             throw new IllegalArgumentException("A quantidade deve ser maior que zero.");
         }
+
 
         // Valida apenas priceForLote e gainPercentage, pois priceForLotePercent será calculado
         validateBigDecimalField(product.getPriceForLote(), "O preço por lote");
