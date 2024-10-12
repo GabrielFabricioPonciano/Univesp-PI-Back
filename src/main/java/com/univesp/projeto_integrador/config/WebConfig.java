@@ -10,9 +10,7 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
-                .allowedOrigins("https://creative-salamander-3a6501.netlify.app")  // Domínio do seu frontend
+                .allowedOrigins("http://localhost:4200", "https://creative-salamander-3a6501.netlify.app")
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
-                .allowCredentials(true);
-    }
-}
+                .allowCredentials(true);}}
