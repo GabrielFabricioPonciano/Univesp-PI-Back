@@ -1,8 +1,10 @@
 package com.univesp.projeto_integrador.service;
 
 import com.univesp.projeto_integrador.dto.ProductDTO;
+import com.univesp.projeto_integrador.dto.PromotionDTO;
 import com.univesp.projeto_integrador.exception.ResourceNotFoundException;
 import com.univesp.projeto_integrador.model.Product;
+import com.univesp.projeto_integrador.model.Promotion;
 import com.univesp.projeto_integrador.repository.ProductRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -19,6 +21,10 @@ public class ProductService {
 
     @Autowired
     private ProductRepository productRepository;
+
+    @Autowired
+    private PromotionService promotionService;
+
 
     public List<ProductDTO> findAll() {
         List<Product> produtos = productRepository.findAll();
@@ -57,11 +63,10 @@ public class ProductService {
     }
 
     public ProductDTO updateProduct(Long id, ProductDTO newProductDetails) {
-        // Encontra o produto existente pelo ID
         Product existingProduct = productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Produto não encontrado com id " + id));
 
-        // Atualiza os valores do produto existente com base no DTO fornecido
+        // Atualiza os valores do produto
         existingProduct.setProductName(newProductDetails.getProductName());
         existingProduct.setProductType(newProductDetails.getProductType());
         existingProduct.setQuantity(newProductDetails.getQuantity());
@@ -69,32 +74,29 @@ public class ProductService {
         existingProduct.setDescription(newProductDetails.getDescription());
         existingProduct.setDateExpiration(newProductDetails.getDateExpiration());
 
-        // Valida apenas priceForLote e gainPercentage, pois priceForLotePercent será calculado
+        // Atualiza os valores de preços
         validateBigDecimalField(newProductDetails.getPriceForLote(), "O preço por lote");
         validateBigDecimalField(newProductDetails.getGainPercentage(), "A porcentagem de ganho");
-
-        // Atualiza priceForLote e gainPercentage
         existingProduct.setPriceForLote(newProductDetails.getPriceForLote());
         existingProduct.setGainPercentage(newProductDetails.getGainPercentage());
 
-        // Calcula o preço final do lote com a margem de ganho
         BigDecimal priceForLotePercent = calculatePriceForLotePercent(
                 existingProduct.getPriceForLote(), existingProduct.getGainPercentage()
         );
         existingProduct.setPriceForLotePercent(priceForLotePercent);
-
-        // Calcula os preços unitários
         BigDecimal priceForUnity = calculateUnitPrice(existingProduct.getPriceForLote(), existingProduct.getQuantity());
         existingProduct.setPriceForUnity(priceForUnity);
-
-        // Calcula o preço unitário com a margem de ganho
         BigDecimal priceForUnityPercent = calculateUnitPrice(existingProduct.getPriceForLotePercent(), existingProduct.getQuantity());
         existingProduct.setPriceForUnityPercent(priceForUnityPercent);
 
-        // Salva o produto atualizado no banco de dados
-        Product savedProduct = productRepository.save(existingProduct);
+        // Atualiza a promoção associada, se houver
+        if (newProductDetails.getPromotion() != null) {
+            PromotionDTO promotionDTO = promotionService.getPromotionById(newProductDetails.getPromotion().getPromotionId());
+            Promotion promotion = promotionService.dtoToEntity(promotionDTO);
+            existingProduct.setPromotion(promotion);
+        }
 
-        // Converte o produto atualizado de volta para DTO e retorna
+        Product savedProduct = productRepository.save(existingProduct);
         return entityToDto(savedProduct);
     }
 
@@ -107,8 +109,7 @@ public class ProductService {
             throw new IllegalArgumentException("A quantidade deve ser maior que zero.");
         }
 
-
-        // Valida apenas priceForLote e gainPercentage, pois priceForLotePercent será calculado
+        // Valida campos numéricos
         validateBigDecimalField(product.getPriceForLote(), "O preço por lote");
         validateBigDecimalField(product.getGainPercentage(), "A porcentagem de ganho");
 
@@ -122,11 +123,19 @@ public class ProductService {
         product.setPriceForUnity(priceForUnity);
         product.setPriceForUnityPercent(priceForUnityPercent);
 
+        // Associa a promoção ao produto
+        if (productDTO.getPromotion() != null) {
+            PromotionDTO promotionDTO = promotionService.getPromotionById(productDTO.getPromotion().getPromotionId());
+            Promotion promotion = promotionService.dtoToEntity(promotionDTO); // Converte DTO para entidade
+            product.setPromotion(promotion);
+        }
+
         // Salva no banco de dados
         Product savedProduct = productRepository.save(product);
 
         return entityToDto(savedProduct);
     }
+
 
     // Método para calcular o preço do lote a partir de priceForLote e gainPercentage
     private BigDecimal calculatePriceForLotePercent(BigDecimal priceForLote, BigDecimal gainPercentage) {
@@ -144,25 +153,27 @@ public class ProductService {
 
 
 
-    private Product dtoToEntity(ProductDTO dto) {
+    private Product dtoToEntity(ProductDTO productDTO) {
         Product product = new Product();
-        product.setProductName(dto.getProductName());
-        product.setProductType(dto.getProductType());
-        product.setQuantity(dto.getQuantity());
-        product.setNumberLote(dto.getNumberLote());
-        product.setDateExpiration(dto.getDateExpiration());
-        product.setGainPercentage(dto.getGainPercentage());
-        product.setPriceForLote(dto.getPriceForLote());
-        product.setDescription(dto.getDescription());
+        product.setProductName(productDTO.getProductName());
+        product.setProductType(productDTO.getProductType());
+        product.setQuantity(productDTO.getQuantity());
+        product.setNumberLote(productDTO.getNumberLote());
+        product.setDateExpiration(productDTO.getDateExpiration());
+        product.setGainPercentage(productDTO.getGainPercentage());
+        product.setPriceForLote(productDTO.getPriceForLote());
+        product.setDescription(productDTO.getDescription());
 
-        // Estes campos serão calculados no backend e não devem ser enviados pelo cliente diretamente.
-        // Certifique-se de que estes campos sejam inicializados corretamente na lógica de negócio.
-        product.setPriceForUnity(dto.getPriceForUnity());
-        product.setPriceForUnityPercent(dto.getPriceForUnityPercent());
-        product.setPriceForLotePercent(dto.getPriceForLotePercent());
+        // Adiciona promoção associada, se existir
+        if (productDTO.getPromotion() != null) {
+            Promotion promotion = promotionService.dtoToEntity(productDTO.getPromotion());
+            product.setPromotion(promotion);
+        }
 
         return product;
     }
+
+
 
     private ProductDTO entityToDto(Product product) {
         ProductDTO dto = new ProductDTO();
@@ -176,13 +187,15 @@ public class ProductService {
         dto.setPriceForLote(product.getPriceForLote());
         dto.setDescription(product.getDescription());
 
-        // Valores calculados que são enviados ao frontend para exibição
-        dto.setPriceForUnity(product.getPriceForUnity());
-        dto.setPriceForUnityPercent(product.getPriceForUnityPercent());
-        dto.setPriceForLotePercent(product.getPriceForLotePercent());
+        // Adiciona promoção associada, se houver
+        if (product.getPromotion() != null) {
+            PromotionDTO promotionDTO = promotionService.entityToDto(product.getPromotion());
+            dto.setPromotion(promotionDTO);
+        }
 
         return dto;
     }
+
 
 
 

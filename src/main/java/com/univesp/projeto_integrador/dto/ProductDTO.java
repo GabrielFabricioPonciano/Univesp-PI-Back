@@ -24,9 +24,12 @@ public class ProductDTO {
     private BigDecimal priceForUnity;        // Preço unitário base
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-    private Productstatus status;            // Status do produto (ACTIVE, SOLD, ROTTEN)
+    private ProductStatus status;            // Status do produto (ACTIVE, SOLD, ROTTEN)
 
-    public enum Productstatus {
+    // Associação com a promoção
+    private PromotionDTO promotion;          // DTO de promoção associada
+
+    public enum ProductStatus {
         ACTIVE, SOLD, ROTTEN
     }
 }

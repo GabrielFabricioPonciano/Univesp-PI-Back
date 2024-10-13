@@ -1,11 +1,18 @@
 package com.univesp.projeto_integrador.model;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "promotions")
+@Getter
+@Setter
 public class Promotion {
 
     @Id
@@ -27,9 +34,7 @@ public class Promotion {
     @Enumerated(EnumType.STRING)
     private PromotionStatus status = PromotionStatus.ACTIVE;
 
-    // Getters e setters
+    @OneToMany(mappedBy = "promotion", cascade = CascadeType.ALL)
+    private List<Product> products = new ArrayList<>();
 }
 
-enum PromotionStatus {
-    ACTIVE, EXPIRED
-}
