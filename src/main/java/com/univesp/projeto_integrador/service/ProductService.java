@@ -89,8 +89,11 @@ public class ProductService {
         BigDecimal priceForUnityPercent = calculateUnitPrice(existingProduct.getPriceForLotePercent(), existingProduct.getQuantity());
         existingProduct.setPriceForUnityPercent(priceForUnityPercent);
 
-        // Atualiza a promoção associada, se houver
-        if (newProductDetails.getPromotion() != null) {
+        // Verifica se é para remover a promoção
+        if (newProductDetails.getPromotion() == null) {
+            existingProduct.setPromotion(null);  // Remove a promoção se for null
+        } else {
+            // Atualiza a promoção associada, se houver
             PromotionDTO promotionDTO = promotionService.getPromotionById(newProductDetails.getPromotion().getPromotionId());
             Promotion promotion = promotionService.dtoToEntity(promotionDTO);
             existingProduct.setPromotion(promotion);
@@ -99,6 +102,7 @@ public class ProductService {
         Product savedProduct = productRepository.save(existingProduct);
         return entityToDto(savedProduct);
     }
+
 
 
     public ProductDTO saveProduct(ProductDTO productDTO) {
