@@ -1,108 +1,92 @@
 package com.univesp.projeto_integrador.model;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.*;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "products")
 @Getter
 @Setter
+@Entity
+@Table(name = "products")
 public class Product {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long productId;
 
+    @NotBlank(message = "O nome do produto é obrigatório.")
+    @Size(max = 100, message = "O nome do produto pode ter no máximo 100 caracteres.")
     @Column(nullable = false, length = 100)
     private String productName;
 
+    @Size(max = 50, message = "O tipo do produto pode ter no máximo 50 caracteres.")
     @Column(length = 50)
     private String productType;
 
+    @Min(value = 1, message = "A quantidade deve ser maior que zero.")
     @Column(nullable = false)
     private int quantity;
 
-    @Column(length = 50, nullable = false)
+    @NotBlank(message = "O número do lote é obrigatório.")
+    @Size(max = 50, message = "O número do lote pode ter no máximo 50 caracteres.")
+    @Column(nullable = false, length = 50)
     private String numberLote;
 
     @Lob
     private String description;
 
+    @NotNull(message = "A data de validade é obrigatória.")
+    @Future(message = "A data de validade deve ser uma data futura.")
     @Column(nullable = false)
     private LocalDate dateExpiration;
 
+    @NotNull(message = "A porcentagem de ganho é obrigatória.")
+    @DecimalMin(value = "0.00", inclusive = true, message = "A porcentagem de ganho não pode ser negativa.")
+    @Digits(integer = 3, fraction = 2, message = "A porcentagem de ganho deve ter no máximo 3 dígitos inteiros e 2 decimais.")
     @Column(nullable = false)
-    private BigDecimal gainPercentage;  // Novo campo para a porcentagem de ganho
+    private BigDecimal gainPercentage;
 
+    @NotNull(message = "O preço por lote com percentual é obrigatório.")
+    @DecimalMin(value = "0.00", message = "O preço por lote com percentual deve ser maior ou igual a zero.")
+    @Digits(integer = 10, fraction = 2, message = "O preço por lote com percentual deve ter no máximo 10 dígitos inteiros e 2 decimais.")
     @Column(nullable = false)
-    private BigDecimal priceForLotePercent;  // Novo campo para o preço total
+    private BigDecimal priceForLotePercent;
 
-
+    @NotNull(message = "O preço por lote é obrigatório.")
+    @DecimalMin(value = "0.00", message = "O preço por lote deve ser maior ou igual a zero.")
+    @Digits(integer = 10, fraction = 2, message = "O preço por lote deve ter no máximo 10 dígitos inteiros e 2 decimais.")
     @Column(nullable = false)
-    private BigDecimal priceForLote; // Preço calculado automaticamente
+    private BigDecimal priceForLote;
 
-    @Column
-    private BigDecimal priceForUnityPercent; // Preço calculado automaticamente
+    @DecimalMin(value = "0.00", message = "O preço unitário com percentual deve ser maior ou igual a zero.")
+    @Digits(integer = 10, fraction = 2, message = "O preço unitário com percentual deve ter no máximo 10 dígitos inteiros e 2 decimais.")
+    private BigDecimal priceForUnityPercent;
 
-    @Column
+    @DecimalMin(value = "0.00", message = "O preço unitário deve ser maior ou igual a zero.")
+    @Digits(integer = 10, fraction = 2, message = "O preço unitário deve ter no máximo 10 dígitos inteiros e 2 decimais.")
     private BigDecimal priceForUnity;
 
     @ManyToOne
-    @JoinColumn(name = "promotion_id")
+    @JoinColumn(name = "promotion_id", referencedColumnName = "promotionId", nullable = true)
     private Promotion promotion;
 
-    @Column(name = "created_at", columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+    @Column(name = "created_at", updatable = false, columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
     private LocalDateTime createdAt;
 
     @Column(name = "updated_at", columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP")
     private LocalDateTime updatedAt;
 
     @Enumerated(EnumType.STRING)
-    Productstatus status = Productstatus.ACTIVE;
+    @Column(nullable = false)
+    private ProductStatus status = ProductStatus.ACTIVE;
 
-    enum Productstatus {
-        ACTIVE, SOLD, ROTTEN
-    }
-
-
-    @PrePersist
-    public void prePersist() {
+    public Product() {
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
-        this.priceForLotePercent = calculatePriceForLotePercent(); // Calcula o preço do lote com a margem de lucro
-        this.priceForUnityPercent = calculateUnitPricePercent();   // Calcula o preço unitário com base no preço do lote com margem
     }
-
-    @PreUpdate
-    public void preUpdate() {
-        this.updatedAt = LocalDateTime.now();
-        this.priceForLotePercent = calculatePriceForLotePercent(); // Calcula o preço do lote com a margem de lucro
-        this.priceForUnityPercent = calculateUnitPricePercent();   // Calcula o preço unitário com base no preço do lote com margem
-    }
-
-
-    // Lógica para calcular o preço por lote com base no totalPrice e gainPercentage
-    private BigDecimal calculatePriceForLotePercent() {
-        if (priceForLote != null && gainPercentage != null) {
-            BigDecimal gainFactor = BigDecimal.ONE.add(gainPercentage.divide(new BigDecimal("100")));
-            return priceForLote.multiply(gainFactor).setScale(2, RoundingMode.HALF_UP);
-        }
-        return BigDecimal.ZERO; // Valor padrão se os dados forem inválidos
-    }
-
-
-
-    // Lógica para calcular o preço unitário com base no preço por lote e quantidade
-    private BigDecimal calculateUnitPricePercent() {
-        if (quantity > 0 && priceForLotePercent != null) {
-            return priceForLotePercent.divide(new BigDecimal(quantity), RoundingMode.HALF_UP);
-        }
-        return BigDecimal.ZERO; // Valor padrão se os dados forem inválidos
-    }
-
 }

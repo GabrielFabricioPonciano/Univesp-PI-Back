@@ -6,12 +6,14 @@ import com.univesp.projeto_integrador.exception.ResourceNotFoundException;
 import com.univesp.projeto_integrador.model.Product;
 import com.univesp.projeto_integrador.model.Promotion;
 import com.univesp.projeto_integrador.repository.ProductRepository;
+import com.univesp.projeto_integrador.yuxi.ProductCalculator;
+import com.univesp.projeto_integrador.yuxi.ProductMapper;
+import com.univesp.projeto_integrador.yuxi.ProductValidator;
+import com.univesp.projeto_integrador.yuxi.PromotionMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.util.Collections;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -25,185 +27,107 @@ public class ProductService {
     @Autowired
     private PromotionService promotionService;
 
+    @Autowired
+    private PromotionMapper promotionMapper;
 
+    @Autowired
+    private ProductMapper productMapper;
+
+    @Autowired
+    private ProductValidator productValidator;
+
+    @Autowired
+    private ProductCalculator productCalculator;
+
+    // Método para listar todos os produtos
     public List<ProductDTO> findAll() {
-        List<Product> produtos = productRepository.findAll();
-        return produtos.stream().map(this::entityToDto).collect(Collectors.toList());
-    };
+        List<Product> products = productRepository.findAll();
+        return products.stream().map(productMapper::entityToDto).collect(Collectors.toList());
+    }
 
+    // Método para buscar produto por ID
     public ProductDTO findById(Long id) {
-        Optional<Product> produto = productRepository.findById(id);
-        if (produto.isPresent()){
-            ProductDTO produtodto = entityToDto(produto.get());
-            return produtodto;
-        }else {
-            throw new ResourceNotFoundException("Produto não encontrado com id " + id);
-    }}
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Produto não encontrado com id " + id));
+        return productMapper.entityToDto(product);
+    }
 
-    // Método para verificar se um valor BigDecimal é nulo ou inválido (<= 0)
-
-
-
-
+    // Método para deletar produto por ID
     public void deleteProduct(Long id) {
-        Optional<Product> product = productRepository.findById(id);
-        if (product.isPresent()) {
-            System.out.println("Excluindo produto: " + product.get().getProductName());
-            productRepository.deleteById(id);
-        } else {
+        if (!productRepository.existsById(id)) {
             throw new ResourceNotFoundException("Produto não encontrado com o ID: " + id);
         }
+        productRepository.deleteById(id);
     }
 
-    // Método para verificar se um valor BigDecimal é nulo ou inválido (<= 0)
-    private void validateBigDecimalField(BigDecimal value, String fieldName) {
-        if (value == null || value.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException(fieldName + " não pode ser nulo ou menor/igual a zero.");
-        }
-    }
-
+    // Método para atualizar um produto existente
     public ProductDTO updateProduct(Long id, ProductDTO newProductDetails) {
         Product existingProduct = productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Produto não encontrado com id " + id));
 
-        // Atualiza os valores do produto
+        // Valida os campos numéricos
+        productValidator.validateBigDecimalField(newProductDetails.getPriceForLote(), "O preço por lote");
+        productValidator.validateBigDecimalField(newProductDetails.getGainPercentage(), "A porcentagem de ganho");
+
+        // Atualiza os campos do produto manualmente
         existingProduct.setProductName(newProductDetails.getProductName());
         existingProduct.setProductType(newProductDetails.getProductType());
         existingProduct.setQuantity(newProductDetails.getQuantity());
         existingProduct.setNumberLote(newProductDetails.getNumberLote());
         existingProduct.setDescription(newProductDetails.getDescription());
         existingProduct.setDateExpiration(newProductDetails.getDateExpiration());
-
-        // Atualiza os valores de preços
-        validateBigDecimalField(newProductDetails.getPriceForLote(), "O preço por lote");
-        validateBigDecimalField(newProductDetails.getGainPercentage(), "A porcentagem de ganho");
-        existingProduct.setPriceForLote(newProductDetails.getPriceForLote());
         existingProduct.setGainPercentage(newProductDetails.getGainPercentage());
+        existingProduct.setPriceForLote(newProductDetails.getPriceForLote());
+        existingProduct.setUpdatedAt(LocalDateTime.now());
 
-        BigDecimal priceForLotePercent = calculatePriceForLotePercent(
-                existingProduct.getPriceForLote(), existingProduct.getGainPercentage()
-        );
-        existingProduct.setPriceForLotePercent(priceForLotePercent);
-        BigDecimal priceForUnity = calculateUnitPrice(existingProduct.getPriceForLote(), existingProduct.getQuantity());
-        existingProduct.setPriceForUnity(priceForUnity);
-        BigDecimal priceForUnityPercent = calculateUnitPrice(existingProduct.getPriceForLotePercent(), existingProduct.getQuantity());
-        existingProduct.setPriceForUnityPercent(priceForUnityPercent);
-
-        // Verifica se é para remover a promoção
+        // Gerencia a promoção (adiciona ou remove)
         if (newProductDetails.getPromotion() == null) {
-            existingProduct.setPromotion(null);  // Remove a promoção se for null
+            existingProduct.setPromotion(null);
         } else {
-            // Atualiza a promoção associada, se houver
             PromotionDTO promotionDTO = promotionService.getPromotionById(newProductDetails.getPromotion().getPromotionId());
-            Promotion promotion = promotionService.dtoToEntity(promotionDTO);
+            Promotion promotion = promotionMapper.dtoToEntity(promotionDTO);
             existingProduct.setPromotion(promotion);
         }
 
+        // Calcula os preços com base no lote e na promoção (se houver)
+        productCalculator.calculatePrices(existingProduct);
+
+        // Salva o produto atualizado
         Product savedProduct = productRepository.save(existingProduct);
-        return entityToDto(savedProduct);
+        return productMapper.entityToDto(savedProduct);
     }
 
 
 
+
+    // Método para salvar um novo produto
     public ProductDTO saveProduct(ProductDTO productDTO) {
-        Product product = dtoToEntity(productDTO);
+        Product product = productMapper.dtoToEntity(productDTO);
 
-        // Verifica se a quantidade é válida
-        if (product.getQuantity() <= 0) {
-            throw new IllegalArgumentException("A quantidade deve ser maior que zero.");
-        }
+        // Validações de campos obrigatórios e numéricos
+        productValidator.validateBigDecimalField(product.getPriceForLote(), "O preço por lote");
+        productValidator.validateBigDecimalField(product.getGainPercentage(), "A porcentagem de ganho");
 
-        // Valida campos numéricos
-        validateBigDecimalField(product.getPriceForLote(), "O preço por lote");
-        validateBigDecimalField(product.getGainPercentage(), "A porcentagem de ganho");
-
-        // Calcula o preço final do lote com a margem de ganho
-        BigDecimal priceForLotePercent = calculatePriceForLotePercent(product.getPriceForLote(), product.getGainPercentage());
-        product.setPriceForLotePercent(priceForLotePercent);
-
-        // Calcula o preço unitário com e sem margem
-        BigDecimal priceForUnity = calculateUnitPrice(product.getPriceForLote(), product.getQuantity());
-        BigDecimal priceForUnityPercent = calculateUnitPrice(priceForLotePercent, product.getQuantity());
-        product.setPriceForUnity(priceForUnity);
-        product.setPriceForUnityPercent(priceForUnityPercent);
-
-        // Associa a promoção ao produto
+        // Verifica e associa a promoção, se houver
         if (productDTO.getPromotion() != null) {
-            PromotionDTO promotionDTO = promotionService.getPromotionById(productDTO.getPromotion().getPromotionId());
-            Promotion promotion = promotionService.dtoToEntity(promotionDTO); // Converte DTO para entidade
+            Promotion promotion = promotionMapper.dtoToEntity(
+                    promotionService.getPromotionById(productDTO.getPromotion().getPromotionId())
+            );
             product.setPromotion(promotion);
         }
 
-        // Salva no banco de dados
+        // Cálculo de preços baseado no preço do lote e porcentagem de ganho
+        productCalculator.calculatePrices(product);
+
+        // Atualiza os campos de data
+        product.setCreatedAt(LocalDateTime.now());
+        product.setUpdatedAt(LocalDateTime.now());
+
+        // Salva o produto no banco de dados
         Product savedProduct = productRepository.save(product);
 
-        return entityToDto(savedProduct);
+        // Retorna o produto salvo como DTO
+        return productMapper.entityToDto(savedProduct);
     }
-
-
-    // Método para calcular o preço do lote a partir de priceForLote e gainPercentage
-    private BigDecimal calculatePriceForLotePercent(BigDecimal priceForLote, BigDecimal gainPercentage) {
-        BigDecimal gainFactor = BigDecimal.ONE.add(gainPercentage.divide(new BigDecimal("100"), RoundingMode.HALF_UP));
-        return priceForLote.multiply(gainFactor).setScale(2, RoundingMode.HALF_UP);
-    }
-
-    // Método para calcular o preço unitário
-    private BigDecimal calculateUnitPrice(BigDecimal priceForLote, int quantity) {
-        if (quantity > 0) {
-            return priceForLote.divide(new BigDecimal(quantity), RoundingMode.HALF_UP);
-        }
-        return BigDecimal.ZERO;
-    }
-
-
-
-    private Product dtoToEntity(ProductDTO productDTO) {
-        Product product = new Product();
-        product.setProductName(productDTO.getProductName());
-        product.setProductType(productDTO.getProductType());
-        product.setQuantity(productDTO.getQuantity());
-        product.setNumberLote(productDTO.getNumberLote());
-        product.setDateExpiration(productDTO.getDateExpiration());
-        product.setGainPercentage(productDTO.getGainPercentage());
-        product.setPriceForLote(productDTO.getPriceForLote());
-        product.setDescription(productDTO.getDescription());
-
-        // Adiciona promoção associada, se existir
-        if (productDTO.getPromotion() != null) {
-            Promotion promotion = promotionService.dtoToEntity(productDTO.getPromotion());
-            product.setPromotion(promotion);
-        }
-
-        return product;
-    }
-
-
-
-    private ProductDTO entityToDto(Product product) {
-        ProductDTO dto = new ProductDTO();
-        dto.setProductId(product.getProductId());
-        dto.setProductName(product.getProductName());
-        dto.setProductType(product.getProductType());
-        dto.setQuantity(product.getQuantity());
-        dto.setNumberLote(product.getNumberLote());
-        dto.setDateExpiration(product.getDateExpiration());
-        dto.setGainPercentage(product.getGainPercentage());
-        dto.setPriceForLote(product.getPriceForLote());
-        dto.setDescription(product.getDescription());
-
-        // Adiciona promoção associada, se houver
-        if (product.getPromotion() != null) {
-            PromotionDTO promotionDTO = promotionService.entityToDto(product.getPromotion());
-            dto.setPromotion(promotionDTO);
-        }
-
-        return dto;
-    }
-
-
-
-
-
-
 
 }
