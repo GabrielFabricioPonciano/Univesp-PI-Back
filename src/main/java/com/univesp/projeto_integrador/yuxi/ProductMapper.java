@@ -3,7 +3,6 @@ package com.univesp.projeto_integrador.yuxi;
 import com.univesp.projeto_integrador.dto.ProductDTO;
 import com.univesp.projeto_integrador.model.Product;
 import com.univesp.projeto_integrador.model.Promotion;
-import com.univesp.projeto_integrador.service.PromotionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -24,6 +23,7 @@ public class ProductMapper {
         product.setGainPercentage(productDTO.getGainPercentage());
         product.setPriceForLote(productDTO.getPriceForLote());
         product.setDescription(productDTO.getDescription());
+        product.setStatus(productDTO.getStatus());
 
         // Adiciona promoção associada, se houver
         if (productDTO.getPromotion() != null) {
@@ -50,7 +50,7 @@ public class ProductMapper {
         dto.setPriceForLotePercent(product.getPriceForLotePercent());
         dto.setCreatedAt(product.getCreatedAt());
         dto.setUpdatedAt(product.getUpdatedAt());
-        dto.setStatus(String.valueOf(product.getStatus()));
+        dto.setStatus(product.getStatus());
 
         // Adiciona promoção associada, se houver
         if (product.getPromotion() != null) {

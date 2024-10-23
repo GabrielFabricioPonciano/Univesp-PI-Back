@@ -78,6 +78,7 @@ public class ProductService {
         existingProduct.setDateExpiration(newProductDetails.getDateExpiration());
         existingProduct.setGainPercentage(newProductDetails.getGainPercentage());
         existingProduct.setPriceForLote(newProductDetails.getPriceForLote());
+        existingProduct.setStatus(newProductDetails.getStatus());
         existingProduct.setUpdatedAt(LocalDateTime.now());
 
         // Gerencia a promoção (adiciona ou remove)
@@ -122,7 +123,7 @@ public class ProductService {
         // Atualiza os campos de data
         product.setCreatedAt(LocalDateTime.now());
         product.setUpdatedAt(LocalDateTime.now());
-
+        product.setStatus("ACTIVE");
         // Salva o produto no banco de dados
         Product savedProduct = productRepository.save(product);
 

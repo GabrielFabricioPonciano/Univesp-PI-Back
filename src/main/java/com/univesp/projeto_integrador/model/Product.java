@@ -81,9 +81,8 @@ public class Product {
     @Column(name = "updated_at", columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP")
     private LocalDateTime updatedAt;
 
-    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private ProductStatus status = ProductStatus.ACTIVE;
+    private String status = "";
 
     public Product() {
         this.createdAt = LocalDateTime.now();

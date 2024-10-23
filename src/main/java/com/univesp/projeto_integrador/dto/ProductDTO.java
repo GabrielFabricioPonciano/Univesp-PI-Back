@@ -1,5 +1,6 @@
 package com.univesp.projeto_integrador.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.validation.constraints.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -9,6 +10,7 @@ import java.time.LocalDateTime;
 
 @Getter
 @Setter
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class ProductDTO {
 
     private Long productId;
@@ -60,7 +62,7 @@ public class ProductDTO {
     private LocalDateTime updatedAt;
 
     @NotNull(message = "O status do produto é obrigatório.")
-    private String status;
+    private String status = "";
 
     private PromotionDTO promotion;
 
