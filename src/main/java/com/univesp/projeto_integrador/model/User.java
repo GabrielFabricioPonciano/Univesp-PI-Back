@@ -1,7 +1,9 @@
 package com.univesp.projeto_integrador.model;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
@@ -10,6 +12,8 @@ import java.time.LocalDateTime;
 @Table(name = "users")
 @Getter
 @Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class User {
 
     @Id
@@ -17,30 +21,12 @@ public class User {
     private Long userId;
 
     @Column(nullable = false, unique = true, length = 50)
-    private String username;
+    private String name;
 
     @Column(nullable = false, length = 255)
-    private String passwordHash;
-
-    @Column(nullable = false)
-    @Enumerated(EnumType.STRING)
-    private Role role;
+    private String password;
 
     @Column(length = 100)
     private String email;
 
-    @Column(length = 100)
-    private String name;
-
-    @Column(name = "created_at", columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
-    private LocalDateTime createdAt;
-
-    @Column(name = "updated_at", columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP")
-    private LocalDateTime updatedAt;
-
-    // Getters e setters
-}
-
-enum Role {
-    ADMIN, VIEWER
 }

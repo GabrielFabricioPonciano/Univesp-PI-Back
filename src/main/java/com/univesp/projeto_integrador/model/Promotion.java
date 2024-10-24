@@ -2,7 +2,9 @@ package com.univesp.projeto_integrador.model;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.math.BigDecimal;
@@ -14,6 +16,8 @@ import java.util.List;
 @Table(name = "promotions")
 @Getter
 @Setter
+@AllArgsConstructor
+@NoArgsConstructor
 public class Promotion {
 
     @Id

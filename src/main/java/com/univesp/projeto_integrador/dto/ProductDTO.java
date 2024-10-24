@@ -2,7 +2,9 @@ package com.univesp.projeto_integrador.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.validation.constraints.*;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -10,6 +12,8 @@ import java.time.LocalDateTime;
 
 @Getter
 @Setter
+@AllArgsConstructor
+@NoArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ProductDTO {
 
@@ -66,30 +70,4 @@ public class ProductDTO {
 
     private PromotionDTO promotion;
 
-    // Construtor sem argumentos (necessário para deserialização)
-    public ProductDTO() {}
-
-    // Construtor opcional com argumentos
-    public ProductDTO(Long productId, String productName, String productType, int quantity,
-                      String numberLote, String description, LocalDate dateExpiration,
-                      BigDecimal gainPercentage, BigDecimal priceForLotePercent, BigDecimal priceForLote,
-                      BigDecimal priceForUnityPercent, BigDecimal priceForUnity, LocalDateTime createdAt,
-                      LocalDateTime updatedAt, String status, PromotionDTO promotion) {
-        this.productId = productId;
-        this.productName = productName;
-        this.productType = productType;
-        this.quantity = quantity;
-        this.numberLote = numberLote;
-        this.description = description;
-        this.dateExpiration = dateExpiration;
-        this.gainPercentage = gainPercentage;
-        this.priceForLotePercent = priceForLotePercent;
-        this.priceForLote = priceForLote;
-        this.priceForUnityPercent = priceForUnityPercent;
-        this.priceForUnity = priceForUnity;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
-        this.status = status;
-        this.promotion = promotion;
-    }
 }

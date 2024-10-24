@@ -1,8 +1,11 @@
 package com.univesp.projeto_integrador.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.univesp.projeto_integrador.model.PromotionStatus;
 import jakarta.validation.constraints.*;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.math.BigDecimal;
@@ -10,6 +13,9 @@ import java.time.LocalDate;
 
 @Getter
 @Setter
+@AllArgsConstructor
+@NoArgsConstructor
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class PromotionDTO {
 
     private Long promotionId;
