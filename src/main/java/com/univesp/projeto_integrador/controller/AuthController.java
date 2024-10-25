@@ -4,7 +4,7 @@ import com.univesp.projeto_integrador.config.TokenService;
 import com.univesp.projeto_integrador.dto.LoginRequestDTO;
 import com.univesp.projeto_integrador.dto.RegisterRequestDTO;
 import com.univesp.projeto_integrador.dto.ResponseDTO;
-import com.univesp.projeto_integrador.model.User;
+import com.univesp.projeto_integrador.model.Usuario;
 import com.univesp.projeto_integrador.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -40,17 +40,17 @@ public class AuthController {
                     .body(new ResponseDTO("Usuário não encontrado com o email " + body.email(), null));
         }
 
-        User user = (User) userOptional.get();
+        Usuario usuario = (Usuario) userOptional.get();
 
         // Verifica se a senha está correta
-        if (!passwordEncoder.matches(body.password(), user.getPassword())) {
+        if (!passwordEncoder.matches(body.password(), usuario.getPassword())) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(new ResponseDTO("Senha incorreta", null));
         }
 
         // Gera o token se a autenticação for bem-sucedida
-        String token = tokenService.generateToken(user);
-        return ResponseEntity.ok(new ResponseDTO(user.getName(), token));
+        String token = tokenService.generateToken(usuario);
+        return ResponseEntity.ok(new ResponseDTO(usuario.getName(), token));
     }
 
     // Tratamento do registro
@@ -65,16 +65,16 @@ public class AuthController {
         }
 
         // Criação do novo usuário
-        User newUser = new User();
-        newUser.setPassword(passwordEncoder.encode(body.password()));
-        newUser.setEmail(body.email());
-        newUser.setName(body.name());
+        Usuario newUsuario = new Usuario();
+        newUsuario.setPassword(passwordEncoder.encode(body.password()));
+        newUsuario.setEmail(body.email());
+        newUsuario.setName(body.name());
 
-        repository.save(newUser);
+        repository.save(newUsuario);
 
         // Gera o token para o novo usuário registrado
-        String token = tokenService.generateToken(newUser);
-        return ResponseEntity.ok(new ResponseDTO(newUser.getName(), token));
+        String token = tokenService.generateToken(newUsuario);
+        return ResponseEntity.ok(new ResponseDTO(newUsuario.getName(), token));
     }
 
     // Tratamento global de exceções (opcional)

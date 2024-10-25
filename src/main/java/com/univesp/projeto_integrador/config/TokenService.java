@@ -3,7 +3,7 @@ package com.univesp.projeto_integrador.config;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.JWTCreationException;
-import com.univesp.projeto_integrador.model.User;
+import com.univesp.projeto_integrador.model.Usuario;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -14,10 +14,10 @@ import java.time.ZoneOffset;
 public class TokenService {
 
     private  String secret = "senha";
-    public String generateToken(User user){
+    public String generateToken(Usuario usuario){
         try {
             Algorithm algorithm = Algorithm.HMAC256(secret);
-            String token = JWT.create().withIssuer("login").withSubject(user.getEmail()).withExpiresAt(this.generateDate()).sign(algorithm);
+            String token = JWT.create().withIssuer("login").withSubject(usuario.getEmail()).withExpiresAt(this.generateDate()).sign(algorithm);
             return token;
         } catch (JWTCreationException exception){
             throw new RuntimeException("Error while authenticating");
