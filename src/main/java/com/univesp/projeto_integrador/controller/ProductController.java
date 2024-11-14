@@ -23,6 +23,11 @@ public class ProductController {
         return productService.findAll();
     }
 
+    @GetMapping("/critical-stock")
+    public List<Product> getCriticalStockProducts(@RequestParam int threshold) {
+        return productService.getProductsByStockLevel(threshold);
+    }
+
     // Buscar produto por ID
     @GetMapping("/{id}")
     public ResponseEntity<ProductDTO> getProductById(@PathVariable Long id) {

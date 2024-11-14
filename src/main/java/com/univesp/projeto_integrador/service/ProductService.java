@@ -131,4 +131,7 @@ public class ProductService {
         return productMapper.entityToDto(savedProduct);
     }
 
+    public List<Product> getProductsByStockLevel(int threshold) {
+        return productRepository.findByQuantityLessThan(threshold);
+    }
 }
