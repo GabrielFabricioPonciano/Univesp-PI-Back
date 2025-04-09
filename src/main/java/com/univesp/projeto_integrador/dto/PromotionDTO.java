@@ -1,4 +1,5 @@
 package com.univesp.projeto_integrador.dto;
+//Refazer depois
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.univesp.projeto_integrador.model.PromotionStatus;

@@ -10,7 +10,7 @@ import java.time.format.DateTimeFormatter;
 
 @Configuration
 public class JacksonConfig {
-
+    //Para usar json
     @Bean
     public ObjectMapper objectMapper() {
         ObjectMapper mapper = new ObjectMapper();

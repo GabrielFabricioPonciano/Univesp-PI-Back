@@ -13,6 +13,7 @@ import java.util.ArrayList;
 
 @Component
 public class CustomUserDetailsService implements UserDetailsService {
+    //Pegar Username
     @Autowired
     private UserRepository repository;
     @Override

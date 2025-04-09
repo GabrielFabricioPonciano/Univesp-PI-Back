@@ -2,6 +2,7 @@ package com.univesp.projeto_integrador.exception;
 
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.*;
+//Refazer depois
 
 @ControllerAdvice
 public class GlobalExceptionHandler {

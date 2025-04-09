@@ -16,7 +16,6 @@ public class CustomCorsConfiguration {
 
         config.setAllowCredentials(true);
         config.addAllowedOrigin("http://localhost:4200");  // Permitir frontend
-        config.addAllowedOrigin("https://creative-salamander-3a6501.netlify.app");  // Adicionar outros domínios permitidos
         config.addAllowedHeader("*");
         config.addAllowedMethod("*");
 

@@ -19,6 +19,7 @@ import java.util.Collections;
 
 @Component
 public class SecurityFilter extends OncePerRequestFilter {
+    //Refazer depois
     @Autowired
     TokenService tokenService;
     @Autowired

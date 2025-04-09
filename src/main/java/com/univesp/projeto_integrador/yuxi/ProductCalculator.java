@@ -7,6 +7,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 
 import static org.apache.el.lang.ELArithmetic.multiply;
+//Refazer depois
 
 @Component
 public class ProductCalculator {
